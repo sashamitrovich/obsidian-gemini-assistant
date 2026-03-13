@@ -91,7 +91,7 @@ Click the **sparkles** icon in the left ribbon to open the Gemini Assistant side
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Gemini API Key** | Your Google Gemini API key | — |
-| **Model** | All available Gemini models (click Refresh to load from API) | `gemini-2.5-flash` |
+| **Model** | All available Gemini models (dynamically fetched) | `gemini-2.5-flash` |
 | **Temperature** | Controls randomness (0.0 = deterministic, 1.0 = creative) | `0.7` |
 | **Max Tokens** | Maximum length of AI responses | `2048` |
 | **Default Translation Language** | Target language for the Translate command | `English` |
