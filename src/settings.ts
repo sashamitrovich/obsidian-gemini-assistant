@@ -1,5 +1,20 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting } from "obsidian";
 import type GeminiAssistantPlugin from "./main";
+import { fetchAvailableModels } from "./model-fetcher";
+
+export interface ModelOption {
+	id: string;
+	label: string;
+}
+
+export const FALLBACK_MODELS: ModelOption[] = [
+	{ id: "gemini-3.1-pro", label: "Gemini 3.1 Pro (Preview)" },
+	{ id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+	{ id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+	{ id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite" },
+	{ id: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+	{ id: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash-Lite" },
+];
 
 export interface GeminiAssistantSettings {
 	apiKey: string;
@@ -9,16 +24,18 @@ export interface GeminiAssistantSettings {
 	defaultLanguage: string;
 	systemPrompt: string;
 	showRibbonIcon: boolean;
+	availableModels: ModelOption[];
 }
 
 export const DEFAULT_SETTINGS: GeminiAssistantSettings = {
 	apiKey: "",
-	model: "gemini-2.0-flash",
+	model: "gemini-2.5-flash",
 	temperature: 0.7,
 	maxTokens: 2048,
 	defaultLanguage: "English",
 	systemPrompt: "",
 	showRibbonIcon: true,
+	availableModels: FALLBACK_MODELS,
 };
 
 export class GeminiAssistantSettingTab extends PluginSettingTab {
@@ -54,19 +71,48 @@ export class GeminiAssistantSettingTab extends PluginSettingTab {
 					})
 			);
 
-		new Setting(containerEl)
+		const modelSetting = new Setting(containerEl)
 			.setName("Model")
-			.setDesc("Select the Gemini model to use.")
-			.addDropdown((dropdown) =>
+			.setDesc(
+				"Select the Gemini model to use. Click 'Refresh' to load all available models from the Gemini API."
+			)
+			.addDropdown((dropdown) => {
+				for (const m of this.plugin.settings.availableModels) {
+					dropdown.addOption(m.id, m.label);
+				}
 				dropdown
-					.addOption("gemini-2.0-flash", "Gemini 2.0 Flash")
-					.addOption("gemini-1.5-pro", "Gemini 1.5 Pro")
-					.addOption("gemini-1.5-flash", "Gemini 1.5 Flash")
 					.setValue(this.plugin.settings.model)
 					.onChange(async (value) => {
 						this.plugin.settings.model = value;
 						await this.plugin.saveSettings();
-					})
+					});
+			})
+			.addButton((button) =>
+				button.setButtonText("Refresh Models").onClick(async () => {
+					if (!this.plugin.settings.apiKey) {
+						new Notice("Please enter your API key first.");
+						return;
+					}
+					button.setDisabled(true);
+					button.setButtonText("Loading…");
+					try {
+						const models = await fetchAvailableModels(
+							this.plugin.settings.apiKey
+						);
+						this.plugin.settings.availableModels = models;
+						await this.plugin.saveSettings();
+						new Notice(
+							`Models loaded successfully (${models.length} models).`
+						);
+						this.display();
+					} catch (err) {
+						new Notice(
+							`Failed to load models: ${err instanceof Error ? err.message : "Unknown error"}`
+						);
+						button.setDisabled(false);
+						button.setButtonText("Refresh Models");
+					}
+				})
 			);
 
 		new Setting(containerEl)
@@ -150,5 +196,35 @@ export class GeminiAssistantSettingTab extends PluginSettingTab {
 						this.plugin.updateRibbonIcon();
 					})
 			);
+
+		// Auto-refresh models if API key is set and still using fallback defaults
+		if (
+			this.plugin.settings.apiKey &&
+			this.isFallbackModels(this.plugin.settings.availableModels)
+		) {
+			this.autoRefreshModels();
+		}
+	}
+
+	private isFallbackModels(models: ModelOption[]): boolean {
+		if (models.length !== FALLBACK_MODELS.length) return false;
+		return models.every(
+			(m, i) =>
+				m.id === FALLBACK_MODELS[i].id &&
+				m.label === FALLBACK_MODELS[i].label
+		);
+	}
+
+	private async autoRefreshModels(): Promise<void> {
+		try {
+			const models = await fetchAvailableModels(
+				this.plugin.settings.apiKey
+			);
+			this.plugin.settings.availableModels = models;
+			await this.plugin.saveSettings();
+			this.display();
+		} catch {
+			// Silently fall back to existing list
+		}
 	}
 }

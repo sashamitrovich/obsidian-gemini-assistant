@@ -24,6 +24,17 @@ Improve your writing with **Google Gemini AI** — grammar, style, content, and 
 - **Context-Aware** — Commands use the full note as context while acting on your selection
 - **Works on mobile** — Compatible with both desktop and mobile Obsidian
 
+## Model Support
+
+The plugin dynamically fetches all available Gemini models directly from the Google API:
+
+- **Auto-discovery** — Click "Refresh Models" in settings to load the latest available Gemini models
+- **Smart filtering** — Only text generation models are shown (embedding, TTS, and other non-text models are excluded)
+- **Persistent cache** — The fetched model list is saved between sessions so you don't need to refresh every time
+- **Offline fallback** — If the API is unavailable or no API key is set, the plugin falls back to a curated list of current stable models
+
+The default model is `gemini-2.5-flash`, which provides a good balance of speed and quality.
+
 ## Installation
 
 ### Manual Installation
@@ -80,7 +91,7 @@ Click the **sparkles** icon in the left ribbon to open the Gemini Assistant side
 | Setting | Description | Default |
 |---------|-------------|---------|
 | **Gemini API Key** | Your Google Gemini API key | — |
-| **Model** | `gemini-2.0-flash`, `gemini-1.5-pro`, or `gemini-1.5-flash` | `gemini-2.0-flash` |
+| **Model** | All available Gemini models (click Refresh to load from API) | `gemini-2.5-flash` |
 | **Temperature** | Controls randomness (0.0 = deterministic, 1.0 = creative) | `0.7` |
 | **Max Tokens** | Maximum length of AI responses | `2048` |
 | **Default Translation Language** | Target language for the Translate command | `English` |
