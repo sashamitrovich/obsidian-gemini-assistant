@@ -204,17 +204,24 @@ export default class GeminiAssistantPlugin extends Plugin {
 			}
 		} catch (err: unknown) {
 			notice.hide();
-			if (view) {
-				await view.setContent(
-					`**Error:** ${err instanceof Error ? err.message : "An unknown error occurred."}`
-				);
-			}
-			new Notice(
+			const errorMsg =
 				err instanceof Error
 					? err.message
-					: "An error occurred while calling Gemini.",
-				5000
-			);
+					: "An unknown error occurred.";
+			if (view) {
+				await view.setContent(`**Error:** ${errorMsg}`);
+			}
+			if (
+				errorMsg.includes("404") ||
+				errorMsg.toLowerCase().includes("not found")
+			) {
+				new Notice(
+					"Model not found. Go to Settings \u2192 Gemini Assistant \u2192 Refresh Models to see models available for your API key.",
+					8000
+				);
+			} else {
+				new Notice(errorMsg, 5000);
+			}
 		}
 	}
 }

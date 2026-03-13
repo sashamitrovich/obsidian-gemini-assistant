@@ -21,7 +21,7 @@ export interface GeminiAssistantSettings {
 
 export const DEFAULT_SETTINGS: GeminiAssistantSettings = {
 	apiKey: "",
-	model: "gemini-2.5-flash",
+	model: "gemini-2.0-flash",
 	temperature: 0.7,
 	maxTokens: 2048,
 	defaultLanguage: "English",
@@ -108,7 +108,7 @@ export class GeminiAssistantSettingTab extends PluginSettingTab {
 							this.plugin.settings.model =
 								models.length > 0
 									? models[0].id
-									: "gemini-2.5-flash";
+									: "gemini-2.0-flash";
 						}
 
 						await this.plugin.saveSettings();

@@ -1,6 +1,9 @@
 import { requestUrl } from "obsidian";
 
-const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
+const ENDPOINTS = [
+	"https://generativelanguage.googleapis.com/v1beta/models",
+	"https://generativelanguage.googleapis.com/v1/models",
+];
 
 export class GeminiClient {
 	private apiKey: string;
@@ -30,8 +33,6 @@ export class GeminiClient {
 			);
 		}
 
-		const url = `${API_BASE}/${this.model}:generateContent?key=${this.apiKey}`;
-
 		const parts: { text: string }[] = [];
 		if (contextText) {
 			parts.push({
@@ -59,47 +60,62 @@ export class GeminiClient {
 			};
 		}
 
-		try {
-			const response = await requestUrl({
-				url,
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify(body),
-			});
+		let lastError: unknown;
+		for (const base of ENDPOINTS) {
+			const url = `${base}/${this.model}:generateContent?key=${this.apiKey}`;
+			try {
+				const response = await requestUrl({
+					url,
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(body),
+				});
 
-			const data = response.json;
+				const data = response.json;
 
-			if (
-				!data.candidates ||
-				data.candidates.length === 0 ||
-				!data.candidates[0].content
-			) {
-				throw new Error(
-					"Gemini returned an empty response. The content may have been filtered."
-				);
+				if (
+					!data.candidates ||
+					data.candidates.length === 0 ||
+					!data.candidates[0].content
+				) {
+					throw new Error(
+						"Gemini returned an empty response. The content may have been filtered."
+					);
+				}
+
+				return data.candidates[0].content.parts[0].text;
+			} catch (err: unknown) {
+				const error = err as { status?: number; message?: string };
+				if (error.status === 404) {
+					lastError = err;
+					continue;
+				}
+				if (error.status === 400) {
+					throw new Error(
+						"Bad request — check your prompt or model settings."
+					);
+				}
+				if (error.status === 401 || error.status === 403) {
+					throw new Error(
+						"Invalid or unauthorized API key. Please check your Gemini API key in settings."
+					);
+				}
+				if (error.status === 429) {
+					throw new Error(
+						"Rate limit exceeded. Please wait a moment and try again."
+					);
+				}
+				if (error.status && error.status >= 500) {
+					throw new Error(
+						"Gemini server error. Please try again later."
+					);
+				}
+				throw err;
 			}
-
-			return data.candidates[0].content.parts[0].text;
-		} catch (err: unknown) {
-			const error = err as { status?: number; message?: string };
-			if (error.status === 400) {
-				throw new Error(
-					"Bad request — check your prompt or model settings."
-				);
-			} else if (error.status === 401 || error.status === 403) {
-				throw new Error(
-					"Invalid or unauthorized API key. Please check your Gemini API key in settings."
-				);
-			} else if (error.status === 429) {
-				throw new Error(
-					"Rate limit exceeded. Please wait a moment and try again."
-				);
-			} else if (error.status && error.status >= 500) {
-				throw new Error(
-					"Gemini server error. Please try again later."
-				);
-			}
-			throw err;
 		}
+
+		throw new Error(
+			`Model "${this.model}" not found (404). Try selecting a different model in settings, or click "Refresh Models" to load available models for your API key.`
+		);
 	}
 }
