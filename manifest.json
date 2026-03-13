@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-gemini-assistant",
+	"name": "Gemini Assistant",
+	"version": "1.0.0",
+	"minAppVersion": "1.4.0",
+	"description": "Improve your writing with Google Gemini AI — grammar, style, content, and more.",
+	"author": "Saša Mitrović",
+	"authorUrl": "https://github.com/sashamitrovich",
+	"isDesktopOnly": false
+}
